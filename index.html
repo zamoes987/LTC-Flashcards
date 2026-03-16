@@ -1679,6 +1679,9 @@ function resetSession() {
   cardState = {};
   requeueList = [];
   sessionAnswered = 0;
+  // Turn off missedOnly since there are no misses after reset
+  missedOnly = false;
+  document.getElementById("btnMissedOnly").classList.remove("active");
   saveState();
   hideStats();
   applyFilters();
