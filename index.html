@@ -1133,7 +1133,16 @@ function todayStart() { return dayStart(0); }
 function isCardDue(id) {
   const s = getCardState(id);
   if (s.box === 0) return true; // never seen = new
-  if (s.box === 1) return true; // box 1 = same session review
+  if (s.box === 1) return true; // box 1 = missed, needs re-study
+  return s.nextReview <= todayStart();
+}
+
+// For deck building: box 1 cards from PREVIOUS sessions are due,
+// but box 1 cards just missed THIS session are handled by requeue
+function isCardDueForDeck(id) {
+  const s = getCardState(id);
+  if (s.box === 0) return false; // new cards handled separately
+  if (s.box === 1) return true; // leftover missed cards from previous sessions
   return s.nextReview <= todayStart();
 }
 
@@ -1200,17 +1209,11 @@ function applyFilters() {
   totalForFilter = allMatching.length;
 
   if (missedOnly) {
-    // Missed Only mode: show cards with missCount > 0 that haven't been promoted past box 1
-    cards = allMatching.filter(c => {
-      const s = getCardState(c.id);
-      return s.missCount > 0 && s.box <= 1;
-    });
+    // Missed Only mode: show all cards that have been missed at least once
+    cards = allMatching.filter(c => getCardState(c.id).missCount > 0);
   } else {
     // Spaced repetition mode: pick due reviews + limited new cards
-    const dueCards = allMatching.filter(c => {
-      const s = getCardState(c.id);
-      return s.box > 0 && isCardDue(c.id);
-    });
+    const dueCards = allMatching.filter(c => isCardDueForDeck(c.id));
     const newCards = allMatching.filter(c => isCardNew(c.id));
 
     // Limit new cards per session
@@ -1239,10 +1242,7 @@ function updateSessionInfo() {
     return true;
   });
 
-  const dueCount = allMatching.filter(c => {
-    const s = getCardState(c.id);
-    return s.box > 0 && isCardDue(c.id);
-  }).length;
+  const dueCount = allMatching.filter(c => isCardDueForDeck(c.id)).length;
   const newCount = allMatching.filter(c => isCardNew(c.id)).length;
   const leechCount = allMatching.filter(c => isLeech(c.id)).length;
 
@@ -1293,7 +1293,7 @@ function renderCard() {
   const s = getCardState(c.id);
   const starLabel = c.star === 1 ? "* Verbatim" : c.star === 2 ? "** Key Teaching" : "";
   const boxLabel = s.box > 0 ? "Box " + s.box : "New";
-  const boxClass = s.box > 0 ? "box-" + s.box : "box-1";
+  const boxClass = s.box > 0 ? "box-" + s.box : "box-3";
   const isRequeued = requeueList.some(r => r.cardId === c.id);
 
   // Front
@@ -1370,6 +1370,21 @@ function nextCard() {
   if (currentIndex < cards.length - 1) { currentIndex++; renderCard(); }
 }
 
+function injectReadyRequeues() {
+  const ready = requeueList.filter(r => sessionAnswered >= r.showAfter);
+  ready.forEach(r => {
+    if (!cards.some(card => card.id === r.cardId)) {
+      const cardObj = ALL_CARDS.find(card => card.id === r.cardId);
+      if (cardObj) {
+        // Insert a few cards ahead so it's not the very next card
+        const insertAt = Math.min(currentIndex + 2 + Math.floor(Math.random() * 3), cards.length);
+        cards.splice(insertAt, 0, cardObj);
+      }
+    }
+  });
+  requeueList = requeueList.filter(r => sessionAnswered < r.showAfter);
+}
+
 function markCard(result) {
   const c = cards[currentIndex];
   const s = getCardState(c.id);
@@ -1377,16 +1392,21 @@ function markCard(result) {
   sessionAnswered++;
 
   if (result === "know") {
-    // Promote to next box
-    s.box = Math.min(s.box + 1, 5);
+    // Promote: new cards (box 0) skip to box 2 (review tomorrow)
+    // Box 1 (missed) cards also go to box 2 on correct answer
+    if (s.box <= 1) {
+      s.box = 2;
+    } else {
+      s.box = Math.min(s.box + 1, 5);
+    }
     s.nextReview = dayStart(BOX_INTERVALS[s.box]);
   } else {
     // Missed: increment miss count, demote to box 1
     s.missCount++;
     s.box = 1;
-    s.nextReview = 0; // due immediately (same session)
+    s.nextReview = 0;
 
-    // Schedule re-queue: show again after REQUEUE_GAP cards
+    // Schedule re-queue: show again after REQUEUE_GAP intervening cards
     requeueList.push({ cardId: c.id, showAfter: sessionAnswered + REQUEUE_GAP });
   }
 
@@ -1397,19 +1417,20 @@ function markCard(result) {
   cards.splice(currentIndex, 1);
 
   // Check if any requeued cards should re-enter the deck
-  const ready = requeueList.filter(r => sessionAnswered >= r.showAfter);
-  ready.forEach(r => {
-    // Only re-add if not already in deck
-    if (!cards.some(card => card.id === r.cardId)) {
-      const cardObj = ALL_CARDS.find(card => card.id === r.cardId);
-      if (cardObj) {
-        // Insert at a random position ahead of current index (but not right at current)
-        const insertAt = Math.min(currentIndex + 2 + Math.floor(Math.random() * 3), cards.length);
-        cards.splice(insertAt, 0, cardObj);
+  injectReadyRequeues();
+
+  if (cards.length === 0 && requeueList.length > 0) {
+    // Deck emptied but requeued cards are still waiting -- inject them all now
+    requeueList.forEach(r => {
+      if (!cards.some(card => card.id === r.cardId)) {
+        const cardObj = ALL_CARDS.find(card => card.id === r.cardId);
+        if (cardObj) cards.push(cardObj);
       }
-    }
-  });
-  requeueList = requeueList.filter(r => sessionAnswered < r.showAfter);
+    });
+    requeueList = [];
+    if (shuffled) shuffle(cards);
+    currentIndex = 0;
+  }
 
   if (cards.length === 0) {
     updateProgress();
@@ -1452,10 +1473,7 @@ function showStats() {
 
   const leechCards = allMatching.filter(c => isLeech(c.id));
   const totalMissCount = allMatching.reduce((sum, c) => sum + getCardState(c.id).missCount, 0);
-  const dueNow = allMatching.filter(c => {
-    const s = getCardState(c.id);
-    return s.box > 0 && isCardDue(c.id);
-  }).length;
+  const dueNow = allMatching.filter(c => isCardDueForDeck(c.id)).length;
 
   let html = '<h2>Study Overview</h2>';
 
