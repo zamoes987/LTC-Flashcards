@@ -1098,7 +1098,6 @@ const ALL_CARDS = [
 // Box 5: Review after 14 days (mastered)
 const BOX_INTERVALS = [0, 0, 1, 3, 7, 14]; // days per box (box 0 unused, box 1 = same session)
 const REQUEUE_GAP = 8; // re-show missed cards after this many intervening cards
-const SESSION_NEW_LIMIT = 20; // max new cards per session
 const LEECH_THRESHOLD = 5; // flag cards missed this many times
 
 // ========== STATE ==========
@@ -1212,15 +1211,12 @@ function applyFilters() {
     // Missed Only mode: show all cards that have been missed at least once
     cards = allMatching.filter(c => getCardState(c.id).missCount > 0);
   } else {
-    // Spaced repetition mode: pick due reviews + limited new cards
+    // Spaced repetition mode: due reviews + new cards
     const dueCards = allMatching.filter(c => isCardDueForDeck(c.id));
     const newCards = allMatching.filter(c => isCardNew(c.id));
 
-    // Limit new cards per session
-    const newToShow = newCards.slice(0, SESSION_NEW_LIMIT);
-
     // Combine: due reviews first, then new cards
-    cards = [...dueCards, ...newToShow];
+    cards = [...dueCards, ...newCards];
   }
 
   if (shuffled) shuffle(cards);
