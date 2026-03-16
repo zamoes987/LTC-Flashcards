@@ -3,20 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LTC Section 1 -- Flashcard Study</title>
+<meta name="description" content="LTC Section 1 flashcard study app with spaced repetition for theology exam prep">
+<meta name="theme-color" content="#0f1117">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F4D6;</text></svg>">
+<title>LTC Section 1 &mdash; Flashcard Study</title>
 <script src="firebase-config.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
   import { getAuth, signInWithPopup, signOut, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-  const app = initializeApp(window.__firebaseConfig);
-
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
-
-  window._fb = { auth, db, provider, signInWithPopup, signOut, GoogleAuthProvider, onAuthStateChanged, doc, getDoc, setDoc };
+  if (window.__firebaseConfig) {
+    const app = initializeApp(window.__firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+    window._fb = { auth, db, provider, signInWithPopup, signOut, GoogleAuthProvider, onAuthStateChanged, doc, getDoc, setDoc };
+  } else {
+    console.warn("Firebase config not found - running without sync");
+  }
 </script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -420,6 +425,7 @@
     border-radius: 10px;
     font-weight: 600;
   }
+  .box-new { background: rgba(139,143,163,0.2); color: var(--text-dim); }
   .box-1 { background: rgba(217,87,87,0.2); color: var(--red); }
   .box-2 { background: rgba(224,164,88,0.2); color: var(--orange); }
   .box-3 { background: rgba(108,140,255,0.2); color: var(--accent); }
@@ -509,14 +515,14 @@
 <div class="toolbar">
   <div class="filter-group" id="catFilters"></div>
   <div class="separator"></div>
-  <div class="filter-group" id="typeFilters">
-    <button class="small active" data-type="all" onclick="setTypeFilter('all')">All</button>
-    <button class="small" data-type="study" onclick="setTypeFilter('study')">Study</button>
-    <button class="small" data-type="verse" onclick="setTypeFilter('verse')">Verses</button>
+  <div class="filter-group" id="typeFilters" role="group" aria-label="Card type filter">
+    <button class="small active" data-type="all" aria-pressed="true" onclick="setTypeFilter('all')">All</button>
+    <button class="small" data-type="study" aria-pressed="false" onclick="setTypeFilter('study')">Study</button>
+    <button class="small" data-type="verse" aria-pressed="false" onclick="setTypeFilter('verse')">Verses</button>
   </div>
   <div class="separator"></div>
-  <button class="small active" id="btnShuffle" onclick="toggleShuffle()">Shuffle</button>
-  <button class="small" id="btnMissedOnly" onclick="toggleMissedOnly()">Missed Only</button>
+  <button class="small active" id="btnShuffle" aria-pressed="true" onclick="toggleShuffle()">Shuffle</button>
+  <button class="small" id="btnMissedOnly" aria-pressed="false" onclick="toggleMissedOnly()">Missed Only</button>
 </div>
 
 <div class="session-info" id="sessionInfo">
@@ -530,9 +536,12 @@
 <div class="main">
   <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
-  <div class="card-container" id="cardContainer" onclick="flipCard()">
+  <div class="card-container" id="cardContainer" role="button" tabindex="0"
+       aria-label="Flashcard - click or press Space to flip"
+       onclick="flipCard()"
+       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();flipCard();}">
     <div class="card" id="card">
-      <div class="card-face card-front" id="cardFront"></div>
+      <div class="card-face card-front" id="cardFront" aria-live="polite"></div>
       <div class="card-face card-back" id="cardBack"></div>
     </div>
   </div>
@@ -1099,6 +1108,8 @@ const ALL_CARDS = [
 const BOX_INTERVALS = [0, 0, 1, 3, 7, 14]; // days per box (box 0 unused, box 1 = same session)
 const REQUEUE_GAP = 8; // re-show missed cards after this many intervening cards
 const LEECH_THRESHOLD = 5; // flag cards missed this many times
+const STORAGE_KEY = "ltc-s1-cardstate-v3";
+const STORAGE_KEY_OLD = "ltc-s1-results-v2";
 
 // ========== STATE ==========
 let cards = [];
@@ -1157,37 +1168,68 @@ const categories = [...new Set(ALL_CARDS.map(c => c.cat))];
 
 function init() {
   const catContainer = document.getElementById("catFilters");
-  let html = '<button class="small active" data-cat="all" onclick="setCatFilter(\'all\')">All</button>';
+  catContainer.setAttribute("role", "group");
+  catContainer.setAttribute("aria-label", "Category filter");
+  const allBtn = document.createElement("button");
+  allBtn.className = "small active";
+  allBtn.dataset.cat = "all";
+  allBtn.setAttribute("aria-pressed", "true");
+  allBtn.textContent = "All";
+  allBtn.addEventListener("click", () => setCatFilter("all"));
+  catContainer.appendChild(allBtn);
   categories.forEach(cat => {
-    html += '<button class="small" data-cat="'+cat+'" onclick="setCatFilter(\''+cat+'\')">'+cat+'</button>';
+    const btn = document.createElement("button");
+    btn.className = "small";
+    btn.dataset.cat = cat;
+    btn.setAttribute("aria-pressed", "false");
+    btn.textContent = cat;
+    btn.addEventListener("click", () => setCatFilter(cat));
+    catContainer.appendChild(btn);
   });
-  catContainer.innerHTML = html;
   loadState();
   applyFilters();
 }
 
 function setCatFilter(cat) {
   catFilter = cat;
-  document.querySelectorAll("#catFilters button").forEach(b => b.classList.toggle("active", b.dataset.cat === cat));
+  document.querySelectorAll("#catFilters button").forEach(b => {
+    const active = b.dataset.cat === cat;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", active);
+  });
   applyFilters();
 }
 
 function setTypeFilter(type) {
   typeFilter = type;
-  document.querySelectorAll("#typeFilters button").forEach(b => b.classList.toggle("active", b.dataset.type === type));
+  document.querySelectorAll("#typeFilters button").forEach(b => {
+    const active = b.dataset.type === type;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", active);
+  });
   applyFilters();
 }
 
 function toggleShuffle() {
   shuffled = !shuffled;
-  document.getElementById("btnShuffle").classList.toggle("active", shuffled);
+  const btn = document.getElementById("btnShuffle");
+  btn.classList.toggle("active", shuffled);
+  btn.setAttribute("aria-pressed", shuffled);
   applyFilters();
 }
 
 function toggleMissedOnly() {
   missedOnly = !missedOnly;
-  document.getElementById("btnMissedOnly").classList.toggle("active", missedOnly);
+  const btn = document.getElementById("btnMissedOnly");
+  btn.classList.toggle("active", missedOnly);
+  btn.setAttribute("aria-pressed", missedOnly);
   applyFilters();
+}
+
+function esc(str) {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
 }
 
 function shuffle(arr) {
@@ -1289,13 +1331,13 @@ function renderCard() {
   const s = getCardState(c.id);
   const starLabel = c.star === 1 ? "* Verbatim" : c.star === 2 ? "** Key Teaching" : "";
   const boxLabel = s.box > 0 ? "Box " + s.box : "New";
-  const boxClass = s.box > 0 ? "box-" + s.box : "box-3";
+  const boxClass = s.box > 0 ? "box-" + s.box : "box-new";
   const isRequeued = requeueList.some(r => r.cardId === c.id);
 
   // Front
   let frontHTML = '<div class="card-badge">';
-  frontHTML += '<span class="badge-cat">'+c.cat+'</span>';
-  if (c.sub) frontHTML += '<span class="badge-sub">'+c.sub+'</span>';
+  frontHTML += '<span class="badge-cat">'+esc(c.cat)+'</span>';
+  if (c.sub) frontHTML += '<span class="badge-sub">'+esc(c.sub)+'</span>';
   frontHTML += '<span class="badge-type '+(c.type==="study"?"badge-study":"badge-verse")+'">'+(c.type==="study"?"Study":"Verse")+'</span>';
   if (starLabel) frontHTML += '<span class="badge-star">'+starLabel+'</span>';
   frontHTML += '<span class="badge-box '+boxClass+'">'+boxLabel+'</span>';
@@ -1304,25 +1346,25 @@ function renderCard() {
   frontHTML += '</div>';
 
   if (c.type === "study") {
-    frontHTML += '<div class="card-content">'+c.q+'</div>';
+    frontHTML += '<div class="card-content">'+esc(c.q)+'</div>';
   } else {
-    frontHTML += '<div class="card-content" style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;">'+c.ref+'</div>';
-    frontHTML += '<div class="card-content">'+c.prompt+'</div>';
+    frontHTML += '<div class="card-content" style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;">'+esc(c.ref)+'</div>';
+    frontHTML += '<div class="card-content">'+esc(c.prompt)+'</div>';
   }
   frontHTML += '<div class="card-hint">Click or press Space to flip</div>';
   document.getElementById("cardFront").innerHTML = frontHTML;
 
   // Back
   let backHTML = '<div class="card-badge">';
-  backHTML += '<span class="badge-cat">'+c.cat+'</span>';
-  if (c.sub) backHTML += '<span class="badge-sub">'+c.sub+'</span>';
+  backHTML += '<span class="badge-cat">'+esc(c.cat)+'</span>';
+  if (c.sub) backHTML += '<span class="badge-sub">'+esc(c.sub)+'</span>';
   backHTML += '</div>';
 
   if (c.type === "study") {
-    backHTML += '<div class="card-content">'+c.a+'</div>';
+    backHTML += '<div class="card-content">'+esc(c.a)+'</div>';
   } else {
-    backHTML += '<div class="card-content" style="font-style:italic;margin-bottom:12px;">'+c.verse+'</div>';
-    backHTML += '<div class="key-point"><strong>Key Point:</strong> '+c.keyPoint+'</div>';
+    backHTML += '<div class="card-content" style="font-style:italic;margin-bottom:12px;">'+esc(c.verse)+'</div>';
+    backHTML += '<div class="key-point"><strong>Key Point:</strong> '+esc(c.keyPoint)+'</div>';
   }
 
   if (isLeech(c.id)) {
@@ -1367,18 +1409,19 @@ function nextCard() {
 }
 
 function injectReadyRequeues() {
-  const ready = requeueList.filter(r => sessionAnswered >= r.showAfter);
-  ready.forEach(r => {
+  const handled = new Set();
+  requeueList.forEach(r => {
+    if (sessionAnswered < r.showAfter) return; // not ready yet
+    handled.add(r.cardId);
     if (!cards.some(card => card.id === r.cardId)) {
       const cardObj = ALL_CARDS.find(card => card.id === r.cardId);
       if (cardObj) {
-        // Insert a few cards ahead so it's not the very next card
         const insertAt = Math.min(currentIndex + 2 + Math.floor(Math.random() * 3), cards.length);
         cards.splice(insertAt, 0, cardObj);
       }
     }
   });
-  requeueList = requeueList.filter(r => sessionAnswered < r.showAfter);
+  requeueList = requeueList.filter(r => !handled.has(r.cardId));
 }
 
 function markCard(result) {
@@ -1497,7 +1540,7 @@ function showStats() {
     leechCards.forEach((c, i) => {
       const label = c.type==="verse" ? c.ref : (c.q.length > 70 ? c.q.substring(0,70)+"..." : c.q);
       const mc = getCardState(c.id).missCount;
-      html += '<div class="missed-item">'+(i+1)+'. '+label+' <span style="color:var(--red);font-size:0.75rem;">('+mc+'x missed)</span></div>';
+      html += '<div class="missed-item" onclick="studyMissedCard('+c.id+')">'+(i+1)+'. '+esc(label)+' <span style="color:var(--red);font-size:0.75rem;">('+mc+'x missed)</span></div>';
     });
     html += '</div>';
   }
@@ -1549,8 +1592,14 @@ function reviewMissed() {
 let currentUser = null;
 let saveTimeout = null;
 
+function showSyncMsg(msg, duration) {
+  const el = document.getElementById("syncStatus");
+  el.textContent = msg;
+  if (duration) setTimeout(() => { if (el.textContent === msg) el.textContent = ""; }, duration);
+}
+
 function saveState() {
-  try { localStorage.setItem("ltc-s1-cardstate-v3", JSON.stringify(cardState)); } catch(e) {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardState)); } catch(e) {}
   if (currentUser && window._fb) {
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(saveToFirestore, 500);
@@ -1562,11 +1611,10 @@ async function saveToFirestore() {
   try {
     const ref = window._fb.doc(window._fb.db, "progress", currentUser.uid);
     await window._fb.setDoc(ref, { cardState: JSON.stringify(cardState), version: 3, updatedAt: Date.now() });
-    document.getElementById("syncStatus").textContent = "Synced";
-    setTimeout(() => { document.getElementById("syncStatus").textContent = ""; }, 2000);
+    showSyncMsg("Synced", 2000);
   } catch(e) {
     console.error("Firestore save failed:", e);
-    document.getElementById("syncStatus").textContent = "Sync failed";
+    showSyncMsg("Sync failed", 4000);
   }
 }
 
@@ -1584,8 +1632,13 @@ async function loadFromFirestore() {
         Object.keys(cloudState).forEach(id => {
           const cloud = cloudState[id];
           const local = cardState[id];
-          if (!local || cloud.lastSeen > (local.lastSeen || 0)) {
+          if (!local) {
             cardState[id] = cloud;
+          } else {
+            // Prefer higher box; break ties with more recent lastSeen
+            if (cloud.box > local.box || (cloud.box === local.box && cloud.lastSeen > (local.lastSeen || 0))) {
+              cardState[id] = cloud;
+            }
           }
         });
       } else if (data.results) {
@@ -1603,8 +1656,7 @@ async function loadFromFirestore() {
       }
       saveState();
       applyFilters();
-      document.getElementById("syncStatus").textContent = "Loaded from cloud";
-      setTimeout(() => { document.getElementById("syncStatus").textContent = ""; }, 2000);
+      showSyncMsg("Loaded from cloud", 2000);
     } else {
       await saveToFirestore();
     }
@@ -1616,13 +1668,13 @@ async function loadFromFirestore() {
 function loadState() {
   try {
     // Try new format first
-    const saved = localStorage.getItem("ltc-s1-cardstate-v3");
+    const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       cardState = JSON.parse(saved);
       return;
     }
     // Migrate old format
-    const oldSaved = localStorage.getItem("ltc-s1-results-v2");
+    const oldSaved = localStorage.getItem(STORAGE_KEY_OLD);
     if (oldSaved) {
       const oldResults = JSON.parse(oldSaved);
       Object.keys(oldResults).forEach(id => {
@@ -1633,20 +1685,20 @@ function loadState() {
         }
       });
       // Save in new format and clean up old
-      try { localStorage.setItem("ltc-s1-cardstate-v3", JSON.stringify(cardState)); } catch(e) {}
-      try { localStorage.removeItem("ltc-s1-results-v2"); } catch(e) {}
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardState)); } catch(e) {}
+      try { localStorage.removeItem(STORAGE_KEY_OLD); } catch(e) {}
     }
   } catch(e) {}
 }
 
 function handleAuth() {
-  if (!window._fb) { alert("Firebase still loading, try again in a second."); return; }
+  if (!window._fb) { showSyncMsg("Firebase still loading, try again in a second.", 3000); return; }
   if (currentUser) {
     window._fb.signOut(window._fb.auth);
   } else {
     window._fb.signInWithPopup(window._fb.auth, window._fb.provider).catch(e => {
       console.error("Sign-in failed:", e);
-      alert("Sign-in failed: " + e.message);
+      showSyncMsg("Sign-in failed: " + e.message, 4000);
     });
   }
 }
@@ -1679,9 +1731,10 @@ function resetSession() {
   cardState = {};
   requeueList = [];
   sessionAnswered = 0;
-  // Turn off missedOnly since there are no misses after reset
   missedOnly = false;
-  document.getElementById("btnMissedOnly").classList.remove("active");
+  const moBtn = document.getElementById("btnMissedOnly");
+  moBtn.classList.remove("active");
+  moBtn.setAttribute("aria-pressed", "false");
   saveState();
   hideStats();
   applyFilters();
@@ -1691,8 +1744,8 @@ document.addEventListener("keydown", (e) => {
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
   switch(e.key) {
     case " ": case "Enter": e.preventDefault(); flipCard(); break;
-    case "ArrowLeft": prevCard(); break;
-    case "ArrowRight": nextCard(); break;
+    case "ArrowLeft": e.preventDefault(); prevCard(); break;
+    case "ArrowRight": e.preventDefault(); nextCard(); break;
     case "g": case "G": if (isFlipped && cards.length > 0) markCard("know"); break;
     case "m": case "M": if (isFlipped && cards.length > 0) markCard("miss"); break;
   }
