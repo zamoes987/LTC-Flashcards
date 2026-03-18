@@ -5,6 +5,8 @@
       "firebase.json",
       "firestore.rules",
       ".firebaserc",
+      "firebase-config.js",
+      "firebase-config.example.js",
       "**/node_modules/**"
     ],
     "headers": [

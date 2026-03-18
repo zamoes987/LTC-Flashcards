@@ -497,6 +497,83 @@
   }
   .stats-box-item .box-label { font-size: 0.65rem; color: var(--text-dim); }
   .stats-box-item .box-count { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
+
+  /* Edit modal */
+  .edit-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .edit-overlay.visible { display: flex; }
+  .edit-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .edit-modal h2 { font-size: 1.1rem; margin-bottom: 16px; }
+  .edit-modal label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+  .edit-modal textarea {
+    width: 100%;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 80px;
+  }
+  .edit-modal textarea:focus { outline: none; border-color: var(--accent); }
+  .edit-modal .edit-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .edit-modal .edit-actions button { flex: 1; min-width: 100px; }
+  .btn-edit-card {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    z-index: 2;
+    transition: all 0.15s;
+  }
+  .btn-edit-card:hover { color: var(--accent); border-color: var(--accent); }
+  .edit-badge {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: #fff;
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
 </style>
 </head>
 <body>
@@ -542,7 +619,7 @@
        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();flipCard();}">
     <div class="card" id="card">
       <div class="card-face card-front" id="cardFront" aria-live="polite"></div>
-      <div class="card-face card-back" id="cardBack"></div>
+      <div class="card-face card-back" id="cardBack" aria-live="polite"></div>
     </div>
   </div>
 
@@ -565,6 +642,10 @@
   </div>
 
   <div class="stats-panel" id="statsPanel"></div>
+</div>
+
+<div class="edit-overlay" id="editOverlay">
+  <div class="edit-modal" id="editModal"></div>
 </div>
 
 <script>
@@ -911,190 +992,85 @@ const ALL_CARDS = [
   verse:"\"I tell you the truth,\" Jesus answered, \"before Abraham was born, I am!\"",
   keyPoint:"Jesus uses the divine name I AM (Exodus 3:14), claiming pre-existence and full deity. The Jews picked up stones -- they understood exactly what he was saying."},
 
-{id:79,type:"verse",cat:"Christology",ref:"Matt. 24:35",star:1,
-  prompt:"Recite Matt. 24:35",
-  verse:"\"Heaven and earth will pass away, but my words will never pass away.\"",
-  keyPoint:"Jesus claims divine, eternal authority for his words -- surpassing the physical universe itself. Use for: Jesus' view of his own words."},
-
-{id:80,type:"verse",cat:"Christology",ref:"John 1:1-2",star:1,
-  prompt:"Recite John 1:1-2",
-  verse:"\"In the beginning was the Word, and the Word was with God, and the Word was God. He was with God in the beginning. Through him all things were made; without him nothing was made that has been made.\"",
-  keyPoint:"The Word is eternal, distinct from the Father (\"with God\"), and fully divine (\"was God\"). Also establishes Christ as Creator."},
-
-{id:81,type:"verse",cat:"Christology",ref:"John 1:14",star:1,
+{id:79,type:"verse",cat:"Christology",ref:"John 1:14",star:1,
   prompt:"Recite John 1:14",
   verse:"\"The Word became flesh and made his dwelling among us. We have seen his glory, the glory of the One and Only, who came from the Father, full of grace and truth.\"",
   keyPoint:"The incarnation -- the eternal divine Word took on full humanity. Eyewitness claim: \"We have seen his glory.\""},
 
-{id:82,type:"verse",cat:"Christology",ref:"Phil. 2:5-7",star:2,
+{id:80,type:"verse",cat:"Christology",ref:"Phil. 2:5-7",star:2,
   prompt:"Phil. 2:5-7 -- What does this teach? (kenosis passage)",
   verse:"\"Your attitude should be the same as that of Christ Jesus: Who, being in very nature God, did not consider equality with God something to be grasped, but made himself nothing, taking the very nature of a servant, being made in human likeness.\"",
   keyPoint:"The kenosis -- Christ voluntarily set aside independent use of divine privileges to serve. He was \"in very nature God\" -- full deity, voluntary humiliation."},
 
-{id:83,type:"verse",cat:"Christology",ref:"Gal. 4:4-5",star:1,
-  prompt:"Recite Gal. 4:4-5",
-  verse:"\"But when the time had fully come, God sent his Son, born of a woman, born under law, to redeem those under law, that we might receive the full rights of sons.\"",
-  keyPoint:"The incarnation was purposeful -- redemption and adoption. \"Born of a woman\" = humanity. \"Born under law\" = to redeem those under law."},
-
-{id:84,type:"verse",cat:"Christology",ref:"1 John 4:2",star:1,
-  prompt:"Recite 1 John 4:2",
-  verse:"\"This is how you can recognize the Spirit of God: Every spirit that acknowledges that Jesus Christ has come in the flesh is from God.\"",
-  keyPoint:"Christ's physical humanity is a doctrinal test -- denying it (as Gnostics did) marks a false spirit."},
-
-{id:85,type:"verse",cat:"Christology",ref:"Heb. 1:8-10",star:2,
-  prompt:"Heb. 1:8-10 -- What does this teach about Jesus?",
-  verse:"(The author applies Psalm 45:6 and Psalm 102:25-27 to \"the Son\")",
-  keyPoint:"The author applies OT texts directly to \"the Son\" -- Psalm 45:6 (\"Your throne, O God, is forever\") and Psalm 102:25-27 (addressed to YHWH as Creator). Jesus (\"the Son\") is identified as YHWH."},
-
-{id:86,type:"verse",cat:"Christology",ref:"Mk. 2:5-6",star:2,
-  prompt:"Mk. 2:5-6 -- What is the significance?",
-  verse:"(The Pharisees question Jesus forgiving the paralytic's sins: \"Who can forgive sins but God alone?\")",
-  keyPoint:"The Pharisees understood Jesus' forgiveness of the paralytic's sins as a claim to deity. Jesus confirmed rather than corrected their reasoning. Forgiveness of sins = divine prerogative."},
-
 // ============================================================
 // MEMORY VERSES -- PNEUMATOLOGY
 // ============================================================
-{id:87,type:"verse",cat:"Pneumatology",ref:"1 Cor. 12:13",star:1,
+{id:81,type:"verse",cat:"Pneumatology",ref:"1 Cor. 12:13",star:1,
   prompt:"Recite 1 Cor. 12:13",
   verse:"\"For we were all baptized by one Spirit into one body -- whether Jews or Greeks, slave or free -- and we were all given the one Spirit to drink.\"",
   keyPoint:"ALL believers are Spirit-baptized at conversion. \"All\" rules out a two-tier, post-conversion experience. Key verse against \"second act of grace\" theology."},
 
-{id:88,type:"verse",cat:"Pneumatology",ref:"Eph. 1:13-14",star:1,
+{id:82,type:"verse",cat:"Pneumatology",ref:"Eph. 1:13-14",star:1,
   prompt:"Recite Eph. 1:13-14",
   verse:"\"And you also were included in Christ when you heard the word of truth, the gospel of your salvation. Having believed, you were marked in him with a seal, the promised Holy Spirit, who is a deposit guaranteeing our inheritance until the redemption of those who are God's possession -- to the praise of his glory.\"",
   keyPoint:"The Spirit is a seal (ownership/security) and a deposit/down payment guaranteeing full future redemption. Sealing happens at the moment of belief."},
 
-{id:89,type:"verse",cat:"Pneumatology",ref:"John 14:26",star:1,
-  prompt:"Recite John 14:26",
-  verse:"\"But the Counselor, the Holy Spirit, whom the Father will send in my name, will teach you all things and will remind you of everything I have said to you.\"",
-  keyPoint:"The Spirit's teaching and reminding ministry is the foundation for NT inspiration -- apostles were guaranteed accurate recall. Key for: Jesus authorizing the NT."},
-
-{id:90,type:"verse",cat:"Pneumatology",ref:"Matt. 3:11-12",star:2,
-  prompt:"Matt. 3:11-12 -- What does 'baptism by fire' mean?",
-  verse:"\"He will baptize you with the Holy Spirit and with fire. His winnowing fork is in his hand, and he will clear his threshing floor, gathering his wheat into the barn and burning up the chaff with unquenchable fire.\"",
-  keyPoint:"Baptism by fire corresponds to the DAY OF JUDGMENT, not the day of Pentecost. The fire imagery (winnowing, burning chaff) = eschatological judgment, not a spiritual gift."},
-
 // ============================================================
 // MEMORY VERSES -- ANTHROPOLOGY
 // ============================================================
-{id:91,type:"verse",cat:"Anthropology",ref:"Rom. 3:10-12",star:1,
-  prompt:"Recite Rom. 3:10-12",
-  verse:"\"As it is written: 'There is no one righteous, not even one; there is no one who understands, no one who seeks God. All have turned away, they have together become worthless; there is no one who does good, not even one.'\"",
-  keyPoint:"Total depravity -- no one seeks God on their own. Salvation must originate entirely with God."},
-
-{id:92,type:"verse",cat:"Anthropology",ref:"John 3:19-20",star:1,
-  prompt:"Recite John 3:19-20",
-  verse:"\"This is the verdict: Light has come into the world, but men loved darkness instead of light because their deeds were evil. Everyone who does evil hates the light, and will not come into the light for fear that his deeds will be exposed.\"",
-  keyPoint:"Unbelief is moral, not merely intellectual -- people suppress the light because they love sin."},
-
-{id:93,type:"verse",cat:"Anthropology",ref:"Jer. 17:9",star:1,
+{id:83,type:"verse",cat:"Anthropology",ref:"Jer. 17:9",star:1,
   prompt:"Recite Jer. 17:9",
   verse:"\"The heart is deceitful above all things and beyond cure. Who can understand it?\"",
   keyPoint:"The human heart is radically corrupt and self-deceiving -- we cannot trust our moral intuitions apart from God's revelation."},
 
-{id:94,type:"verse",cat:"Anthropology",ref:"Psa. 51:5",star:1,
+{id:84,type:"verse",cat:"Anthropology",ref:"Psa. 51:5",star:1,
   prompt:"Recite Psalm 51:5",
   verse:"\"Surely I was sinful at birth, sinful from the time my mother conceived me.\"",
   keyPoint:"Original sin -- sinfulness is a condition present from conception, not merely acquired behavior. Supports federal headship and inherited guilt."},
 
-{id:95,type:"verse",cat:"Anthropology",ref:"Eph. 2:1-3",star:2,
-  prompt:"Eph. 2:1-3 -- What does this teach about the effects of the Fall?",
-  verse:"\"As for you, you were dead in your transgressions and sins, in which you used to live when you followed the ways of this world and of the ruler of the kingdom of the air... All of us also lived among them at one time, gratifying the cravings of our sinful nature and following its desires and thoughts. Like the rest, we were by nature objects of wrath.\"",
-  keyPoint:"Spiritual effects of the Fall (Total Depravity): spiritually dead, enslaved to sin and the devil, and under God's wrath by nature."},
-
-{id:96,type:"verse",cat:"Anthropology",ref:"Rom. 5:12-19",star:2,
-  prompt:"Rom. 5:12-19 -- What does this teach about Federal Headship?",
-  verse:"(Key passage on Adam and Christ as parallel federal heads)",
-  keyPoint:"Through one man (Adam), sin and death spread to all. Through one man (Christ), righteousness and life come to all who are in him. Federal headship -- imputed sin vs. imputed righteousness."},
-
-{id:97,type:"verse",cat:"Anthropology",ref:"Rom. 1:21-23",star:2,
-  prompt:"Rom. 1:21-23 -- What does this describe?",
-  verse:"\"For although they knew God, they neither glorified him as God nor gave thanks to him, but their thinking became futile and their foolish hearts were darkened. Although they claimed to be wise, they became fools and exchanged the glory of the immortal God for images...\"",
-  keyPoint:"The noetic effects of sin -- sin corrupts the intellect. Thinking became futile, hearts darkened, God's glory exchanged for idols."},
-
 // ============================================================
 // MEMORY VERSES -- BIBLIOLOGY (Inspiration & Canonicity)
 // ============================================================
-{id:98,type:"verse",cat:"Bibliology",ref:"2 Tim. 3:16-17",star:1,
+{id:85,type:"verse",cat:"Bibliology",ref:"2 Tim. 3:16-17",star:1,
   prompt:"Recite 2 Tim. 3:16-17",
   verse:"\"All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training in righteousness, so that the man of God may be thoroughly equipped for every good work.\"",
   keyPoint:"Theopneustos = \"God-breathed.\" Divine origin. Scripture is sufficient to completely equip -- not supplemented by tradition."},
 
-{id:99,type:"verse",cat:"Bibliology",ref:"2 Pet. 1:21",star:1,
+{id:86,type:"verse",cat:"Bibliology",ref:"2 Pet. 1:21",star:1,
   prompt:"Recite 2 Pet. 1:21",
   verse:"\"For prophecy never had its origin in the will of man, but men spoke from God as they were carried along by the Holy Spirit.\"",
   keyPoint:"Source is divine (\"from God\"); human authors were used (\"men spoke\") -- carried along like a ship driven by wind. Verbal plenary inspiration, not dictation."},
 
-{id:100,type:"verse",cat:"Bibliology",ref:"Matt. 5:17-18",star:1,
+{id:87,type:"verse",cat:"Bibliology",ref:"Matt. 5:17-18",star:1,
   prompt:"Recite Matt. 5:17-18",
   verse:"\"Do not think that I have come to abolish the Law or the Prophets; I have not come to abolish them but to fulfill them. I tell you the truth, until heaven and earth disappear, not the smallest letter, not the least stroke of a pen, will by any means disappear from the Law until everything is accomplished.\"",
   keyPoint:"Jesus affirms the verbal, permanent authority of OT Scripture down to its smallest details -- supports inerrancy. Use for: Jesus' view of the OT."},
 
-{id:101,type:"verse",cat:"Bibliology",ref:"Luke 24:44",star:1,
-  prompt:"Recite Luke 24:44",
-  verse:"\"He said to them, 'This is what I told you while I was still with you: Everything must be fulfilled that is written about me in the Law of Moses, the Prophets and the Psalms.'\"",
-  keyPoint:"Jesus validates the tripartite Hebrew canon (Torah / Nevi'im / Ketuvim) and affirms all three sections point to him."},
-
-{id:102,type:"verse",cat:"Bibliology",ref:"1 Cor. 14:37",star:1,
-  prompt:"Recite 1 Cor. 14:37",
-  verse:"\"If anybody thinks he is a prophet or spiritually gifted, let him acknowledge that what I am writing to you is the Lord's command.\"",
-  keyPoint:"Paul claims his writings carry the Lord's own authority -- supporting the canonicity of his letters."},
-
-{id:103,type:"verse",cat:"Bibliology",ref:"Deut. 13:1-4",star:2,
-  prompt:"Deut. 13:1-4 -- What does this teach about testing prophecy?",
-  verse:"\"If a prophet appears among you and announces a sign or wonder, and it takes place, and he says 'Let us follow other gods'... you must not listen to that prophet.\"",
-  keyPoint:"One of the tests for prophetic authorship. The test = does this revelation cohere with previous revelation? Miracles alone don't validate a prophet -- doctrine must match prior revelation."},
-
-{id:104,type:"verse",cat:"Bibliology",ref:"2 Pet. 3:15-16",star:2,
-  prompt:"2 Pet. 3:15-16 -- What does this establish about Paul's writings?",
-  verse:"\"...just as our dear brother Paul also wrote you with the wisdom that God gave him... His letters contain some things that are hard to understand, which ignorant and unstable people distort, as they do the other Scriptures...\"",
-  keyPoint:"Peter calls Paul's letters Scripture (same word used for OT writings) -- apostolic letters were recognized as canonical Scripture even during the apostolic era."},
-
-{id:105,type:"verse",cat:"Bibliology",ref:"John 5:39-47",star:2,
-  prompt:"John 5:39-47 -- What does this teach about Moses and Scripture?",
-  verse:"\"You diligently study the Scriptures because you think that by them you possess eternal life. These are the Scriptures that testify about me... If you believed Moses, you would believe me, for he wrote about me.\"",
-  keyPoint:"Jesus affirms the historical existence of Moses and says Moses wrote about him. Refutes JEDP and affirms Jesus' high view of the Pentateuch."},
-
 // ============================================================
 // MEMORY VERSES -- THEOLOGY PROPER
 // ============================================================
-{id:106,type:"verse",cat:"Theology Proper",ref:"Isa. 46:10",star:1,
+{id:88,type:"verse",cat:"Theology Proper",ref:"Isa. 46:10",star:1,
   prompt:"Recite Isa. 46:10",
   verse:"\"I make known the end from the beginning, from ancient times, what is still to come. I say: My purpose will stand, and I will do all that I please.\"",
   keyPoint:"God's exhaustive foreknowledge and sovereign, unthwartable purpose. Directly refutes Open Theism."},
 
-{id:107,type:"verse",cat:"Theology Proper",ref:"Heb. 4:13",star:1,
+{id:89,type:"verse",cat:"Theology Proper",ref:"Heb. 4:13",star:1,
   prompt:"Recite Heb. 4:13",
   verse:"\"Nothing in all creation is hidden from God's sight. Everything is uncovered and laid bare before the eyes of him to whom we must give account.\"",
   keyPoint:"God's omniscience is total and penetrating. No thought, motive, or act escapes his sight. We will give account."},
 
-{id:108,type:"verse",cat:"Theology Proper",ref:"Ex. 34:6-8",star:2,
-  prompt:"Ex. 34:6-8 -- What does this reveal about God's character?",
-  verse:"\"The LORD, the LORD, the compassionate and gracious God, slow to anger, abounding in love and faithfulness, maintaining love to thousands, and forgiving wickedness, rebellion and sin. Yet he does not leave the guilty unpunished...\"",
-  keyPoint:"God's character is awesome and worthy of worship. God is both just AND merciful in his dealings with humans. This tension is resolved at the cross."},
-
-{id:109,type:"verse",cat:"Theology Proper",ref:"Gen. 1:26",star:2,
-  prompt:"Gen. 1:26 -- What does this suggest about God?",
-  verse:"\"Then God said, 'Let us make man in our image, in our likeness...'\"",
-  keyPoint:"God refers to himself in plural form. This may be a subtle reference to the Trinity. Also establishes us as image-bearers and reveals God's character."},
-
-{id:110,type:"verse",cat:"Theology Proper",ref:"Luke 10:13",star:2,
-  prompt:"Luke 10:13 -- How does this refute Open Theism?",
-  verse:"\"Woe to you, Korazin! Woe to you, Bethsaida! For if the miracles that were performed in you had been performed in Tyre and Sidon, they would have repented long ago, sitting in sackcloth and ashes.\"",
-  keyPoint:"This refutes Openness Theology. Jesus demonstrates knowledge of possible events that never happened. He knows counterfactuals -- what WOULD have happened -- proving exhaustive omniscience."},
-
 // ============================================================
 // EXAM STRATEGY -- Memory Verse Assignments
 // ============================================================
-{id:111,type:"study",cat:"Exam Strategy",sub:"Verse Assignments",
+{id:90,type:"study",cat:"Exam Strategy",sub:"Verse Assignments",
   q:"Mike's half -- what 5 verse topics are assigned?",
   a:"(1) Matt 5 -- OT Scripture (Matt 5:17-18). (2) Matt 24 -- Jesus's words (Matt 24:35). (3) John 14 and 2 Pet 3 -- NT Scripture (John 14:26, 2 Pet 3:15-16). (4) A verse where Jesus claims to be God (John 8:58). (5) Jesus teaching VPI."},
 
-{id:112,type:"study",cat:"Exam Strategy",sub:"Verse Assignments",
+{id:91,type:"study",cat:"Exam Strategy",sub:"Verse Assignments",
   q:"Jess's half -- what 5 verse topics are assigned?",
   a:"(1) Gen 1:26 -- Trinity, image-bearers, God's character. (2) Col 2:9 -- fullness of Deity in bodily form. (3) A verse about effects of the fall (choose one). (4) A Holy Spirit verse (choose one). (5) God's character -- Ex 34:6-8."},
 
-{id:113,type:"study",cat:"Exam Strategy",sub:"Verse Assignments",
+{id:92,type:"study",cat:"Exam Strategy",sub:"Verse Assignments",
   q:"Rule: How many times can you use each passage on the exam?",
   a:"Use each passage NO MORE THAN ONCE across the whole exam. Plan your verse usage carefully."},
 ];
@@ -1110,6 +1086,7 @@ const REQUEUE_GAP = 8; // re-show missed cards after this many intervening cards
 const LEECH_THRESHOLD = 5; // flag cards missed this many times
 const STORAGE_KEY = "ltc-s1-cardstate-v3";
 const STORAGE_KEY_OLD = "ltc-s1-results-v2";
+const EDITS_KEY = "ltc-s1-card-edits-v1";
 
 // ========== STATE ==========
 let cards = [];
@@ -1120,9 +1097,28 @@ let typeFilter = "all";
 let shuffled = true; // ON by default
 let missedOnly = false;
 let cardState = {}; // {cardId: {box, nextReview, missCount, lastSeen}}
+let cardEdits = {}; // {cardId: {field: newValue, ...}} -- user overrides
 let sessionAnswered = 0; // cards answered this session
 let requeueList = []; // [{cardId, showAfter}] -- missed cards waiting to re-enter deck
 let totalForFilter = ALL_CARDS.length;
+
+// Get card with user edits merged on top of original
+function getCard(id) {
+  const orig = ALL_CARDS.find(c => c.id === id);
+  if (!orig) return null;
+  const edits = cardEdits[id];
+  if (!edits) return orig;
+  return { ...orig, ...edits };
+}
+
+// Get all cards matching current category/type filters
+function getMatchingCards() {
+  return ALL_CARDS.filter(c => {
+    if (catFilter !== "all" && c.cat !== catFilter) return false;
+    if (typeFilter !== "all" && c.type !== typeFilter) return false;
+    return true;
+  });
+}
 
 function getCardState(id) {
   if (!cardState[id]) {
@@ -1241,12 +1237,7 @@ function shuffle(arr) {
 }
 
 function applyFilters() {
-  // Get all cards matching category/type filters
-  const allMatching = ALL_CARDS.filter(c => {
-    if (catFilter !== "all" && c.cat !== catFilter) return false;
-    if (typeFilter !== "all" && c.type !== typeFilter) return false;
-    return true;
-  });
+  const allMatching = getMatchingCards();
   totalForFilter = allMatching.length;
 
   if (missedOnly) {
@@ -1274,11 +1265,7 @@ function applyFilters() {
 }
 
 function updateSessionInfo() {
-  const allMatching = ALL_CARDS.filter(c => {
-    if (catFilter !== "all" && c.cat !== catFilter) return false;
-    if (typeFilter !== "all" && c.type !== typeFilter) return false;
-    return true;
-  });
+  const allMatching = getMatchingCards();
 
   const dueCount = allMatching.filter(c => isCardDueForDeck(c.id)).length;
   const newCount = allMatching.filter(c => isCardNew(c.id)).length;
@@ -1302,11 +1289,7 @@ function renderCard() {
   isFlipped = false;
 
   if (cards.length === 0) {
-    const allMatching = ALL_CARDS.filter(c => {
-      if (catFilter !== "all" && c.cat !== catFilter) return false;
-      if (typeFilter !== "all" && c.type !== typeFilter) return false;
-      return true;
-    });
+    const allMatching = getMatchingCards();
     const allDone = allMatching.every(c => getCardState(c.id).box >= 2);
     let msg;
     if (missedOnly) {
@@ -1327,8 +1310,10 @@ function renderCard() {
     return;
   }
 
-  const c = cards[currentIndex];
+  const raw = cards[currentIndex];
+  const c = getCard(raw.id); // merge user edits
   const s = getCardState(c.id);
+  const hasEdits = !!cardEdits[c.id];
   const starLabel = c.star === 1 ? "* Verbatim" : c.star === 2 ? "** Key Teaching" : "";
   const boxLabel = s.box > 0 ? "Box " + s.box : "New";
   const boxClass = s.box > 0 ? "box-" + s.box : "box-new";
@@ -1343,6 +1328,7 @@ function renderCard() {
   frontHTML += '<span class="badge-box '+boxClass+'">'+boxLabel+'</span>';
   if (isLeech(c.id)) frontHTML += '<span class="badge-leech">Leech</span>';
   if (isRequeued) frontHTML += '<span class="badge-requeue">Re-study</span>';
+  if (hasEdits) frontHTML += '<span class="edit-badge">edited</span>';
   frontHTML += '</div>';
 
   if (c.type === "study") {
@@ -1355,7 +1341,8 @@ function renderCard() {
   document.getElementById("cardFront").innerHTML = frontHTML;
 
   // Back
-  let backHTML = '<div class="card-badge">';
+  let backHTML = '<button class="btn-edit-card" onclick="event.stopPropagation();openEditModal('+c.id+')">Edit</button>';
+  backHTML += '<div class="card-badge">';
   backHTML += '<span class="badge-cat">'+esc(c.cat)+'</span>';
   if (c.sub) backHTML += '<span class="badge-sub">'+esc(c.sub)+'</span>';
   backHTML += '</div>';
@@ -1483,11 +1470,7 @@ function markCard(result) {
 }
 
 function updateProgress() {
-  const allMatching = ALL_CARDS.filter(c => {
-    if (catFilter !== "all" && c.cat !== catFilter) return false;
-    if (typeFilter !== "all" && c.type !== typeFilter) return false;
-    return true;
-  });
+  const allMatching = getMatchingCards();
   const masteredCount = allMatching.filter(c => getCardState(c.id).box >= 2).length;
   const total = allMatching.length;
   document.getElementById("progressText").textContent = masteredCount + " / " + total + " learned";
@@ -1497,11 +1480,7 @@ function updateProgress() {
 
 function showStats() {
   const panel = document.getElementById("statsPanel");
-  const allMatching = ALL_CARDS.filter(c => {
-    if (catFilter !== "all" && c.cat !== catFilter) return false;
-    if (typeFilter !== "all" && c.type !== typeFilter) return false;
-    return true;
-  });
+  const allMatching = getMatchingCards();
 
   // Box distribution
   const boxCounts = [0, 0, 0, 0, 0, 0]; // index 0=new, 1-5=boxes
@@ -1599,7 +1578,10 @@ function showSyncMsg(msg, duration) {
 }
 
 function saveState() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardState)); } catch(e) {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cardState));
+    localStorage.setItem(EDITS_KEY, JSON.stringify(cardEdits));
+  } catch(e) { console.warn("localStorage save failed:", e); }
   if (currentUser && window._fb) {
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(saveToFirestore, 500);
@@ -1610,7 +1592,7 @@ async function saveToFirestore() {
   if (!currentUser || !window._fb) return;
   try {
     const ref = window._fb.doc(window._fb.db, "progress", currentUser.uid);
-    await window._fb.setDoc(ref, { cardState: JSON.stringify(cardState), version: 3, updatedAt: Date.now() });
+    await window._fb.setDoc(ref, { cardState: JSON.stringify(cardState), cardEdits: JSON.stringify(cardEdits), version: 3, updatedAt: Date.now() });
     showSyncMsg("Synced", 2000);
   } catch(e) {
     console.error("Firestore save failed:", e);
@@ -1637,10 +1619,19 @@ async function loadFromFirestore() {
           } else {
             // Prefer higher box; break ties with more recent lastSeen
             if (cloud.box > local.box || (cloud.box === local.box && cloud.lastSeen > (local.lastSeen || 0))) {
-              cardState[id] = cloud;
+              cardState[id] = { ...cloud, missCount: Math.max(cloud.missCount || 0, local.missCount || 0) };
             }
           }
         });
+        // Merge card edits from cloud
+        if (data.cardEdits) {
+          try {
+            const cloudEdits = JSON.parse(data.cardEdits);
+            Object.keys(cloudEdits).forEach(id => {
+              if (!cardEdits[id]) cardEdits[id] = cloudEdits[id];
+            });
+          } catch(e) {}
+        }
       } else if (data.results) {
         // Migrate old format: "know" -> box 2, "miss" -> box 1 with missCount 1
         const oldResults = JSON.parse(data.results);
@@ -1667,6 +1658,10 @@ async function loadFromFirestore() {
 
 function loadState() {
   try {
+    // Load card edits
+    const savedEdits = localStorage.getItem(EDITS_KEY);
+    if (savedEdits) cardEdits = JSON.parse(savedEdits);
+
     // Try new format first
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -1688,7 +1683,7 @@ function loadState() {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardState)); } catch(e) {}
       try { localStorage.removeItem(STORAGE_KEY_OLD); } catch(e) {}
     }
-  } catch(e) {}
+  } catch(e) { console.warn("localStorage load failed:", e); }
 }
 
 function handleAuth() {
@@ -1709,7 +1704,7 @@ function updateAuthUI(user) {
     const name = user.displayName ? user.displayName.split(" ")[0] : "User";
     const photo = user.photoURL;
     btn.className = "auth-btn signed-in";
-    btn.innerHTML = (photo ? '<img src="'+photo+'" alt="">' : '') + name + ' (sign out)';
+    btn.innerHTML = (photo ? '<img src="'+esc(photo)+'" alt="">' : '') + esc(name) + ' (sign out)';
   } else {
     btn.className = "auth-btn";
     btn.innerHTML = "Sign in to sync";
@@ -1726,6 +1721,90 @@ function setupAuth() {
 }
 setupAuth();
 
+// ========== CARD EDIT ==========
+let editingCardId = null;
+
+function openEditModal(cardId) {
+  editingCardId = cardId;
+  const c = getCard(cardId);
+  if (!c) return;
+  const modal = document.getElementById("editModal");
+  let html = '<h2>Edit Card #'+c.id+'</h2>';
+
+  if (c.type === "study") {
+    html += '<label for="editQ">Question</label>';
+    html += '<textarea id="editQ" rows="3">'+esc(c.q)+'</textarea>';
+    html += '<label for="editA">Answer</label>';
+    html += '<textarea id="editA" rows="6">'+esc(c.a)+'</textarea>';
+  } else {
+    html += '<label for="editPrompt">Prompt</label>';
+    html += '<textarea id="editPrompt" rows="2">'+esc(c.prompt)+'</textarea>';
+    html += '<label for="editVerse">Verse Text</label>';
+    html += '<textarea id="editVerse" rows="4">'+esc(c.verse)+'</textarea>';
+    html += '<label for="editKeyPoint">Key Point</label>';
+    html += '<textarea id="editKeyPoint" rows="4">'+esc(c.keyPoint)+'</textarea>';
+  }
+
+  html += '<div class="edit-actions">';
+  html += '<button class="primary" onclick="saveEdit()">Save</button>';
+  html += '<button onclick="closeEditModal()">Cancel</button>';
+  if (cardEdits[cardId]) {
+    html += '<button style="color:var(--orange);border-color:var(--orange)" onclick="resetEdit()">Reset to Original</button>';
+  }
+  html += '</div>';
+
+  modal.innerHTML = html;
+  document.getElementById("editOverlay").classList.add("visible");
+}
+
+function closeEditModal() {
+  editingCardId = null;
+  document.getElementById("editOverlay").classList.remove("visible");
+}
+
+function saveEdit() {
+  if (editingCardId === null) return;
+  const orig = ALL_CARDS.find(c => c.id === editingCardId);
+  if (!orig) return;
+
+  const edits = {};
+  if (orig.type === "study") {
+    const q = document.getElementById("editQ").value.trim();
+    const a = document.getElementById("editA").value.trim();
+    if (q !== orig.q) edits.q = q;
+    if (a !== orig.a) edits.a = a;
+  } else {
+    const prompt = document.getElementById("editPrompt").value.trim();
+    const verse = document.getElementById("editVerse").value.trim();
+    const keyPoint = document.getElementById("editKeyPoint").value.trim();
+    if (prompt !== orig.prompt) edits.prompt = prompt;
+    if (verse !== orig.verse) edits.verse = verse;
+    if (keyPoint !== orig.keyPoint) edits.keyPoint = keyPoint;
+  }
+
+  if (Object.keys(edits).length > 0) {
+    cardEdits[editingCardId] = edits;
+  } else {
+    delete cardEdits[editingCardId];
+  }
+
+  saveState();
+  closeEditModal();
+  renderCard();
+}
+
+function resetEdit() {
+  if (editingCardId === null) return;
+  delete cardEdits[editingCardId];
+  saveState();
+  closeEditModal();
+  renderCard();
+}
+
+document.getElementById("editOverlay").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("editOverlay")) closeEditModal();
+});
+
 function resetSession() {
   if (!confirm("Reset ALL progress? This clears all box levels and history.")) return;
   cardState = {};
@@ -1741,6 +1820,8 @@ function resetSession() {
 }
 
 document.addEventListener("keydown", (e) => {
+  // Close edit modal on Escape
+  if (e.key === "Escape" && editingCardId !== null) { closeEditModal(); return; }
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
   switch(e.key) {
     case " ": case "Enter": e.preventDefault(); flipCard(); break;
